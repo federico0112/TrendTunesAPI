@@ -44,6 +44,11 @@
         "Description": "Lambda SecurityGroupIds Value",
         "Default":"None",
         "Type": "String"
+     },
+     "POperation": {
+       "Description": "Lambda Environment Variable: OPERATION",
+       "Default": "None",
+       "Type": "String"
      }
   },
 
@@ -76,7 +81,7 @@
       }
     },
 
-   "ServerlessQueryLambdaFunction": {
+    "ServerlessQueryLambdaFunction": {
        "Description": "Create Lambda function using code from S3 bucket",
        "Type": "AWS::Lambda::Function",
        "Properties": {
@@ -98,13 +103,14 @@
                 "PORT": {"Ref": "PPort"},
                 "DATABASE": {"Ref": "PDatabase"},
                 "DBUSER": {"Ref": "PDbUser"},
-                "DBPASSWORD": {"Ref": "PDbPassword"}
+                "DBPASSWORD": {"Ref": "PDbPassword"},
+                "OPERATION": {"Ref":  "POperation"}
              }
           }
        }
     },
 
-     "ApiGatewayCloudwatchRole": {
+    "ApiGatewayCloudwatchRole": {
         "Description": "Allow API Gateway to publish to CloudWatch logs",
         "Type": "AWS::IAM::Role",
         "Properties": {
@@ -130,7 +136,7 @@
        }
     },
 
-     "ServerlessQueryApi": {
+    "ServerlessQueryApi": {
         "Description": "Create API Gateway REST API",
         "Type" : "AWS::ApiGateway::RestApi",
         "Properties" : {
@@ -179,6 +185,81 @@
                }]
             },
             "ResourceId": {"Ref": "ServerlessQueryApiResource"},
+            "RestApiId": {"Ref": "ServerlessQueryApi"},
+            "MethodResponses": [{ "StatusCode": 200 }]
+         }
+     },
+
+     "GetTopArtistLambdaFunction": {
+       "Description": "Create Lambda function using code from S3 bucket",
+       "Type": "AWS::Lambda::Function",
+       "Properties": {
+          "FunctionName": "GetTopArtists",
+          "Handler": "serverless-query.handler",
+          "Role": {"Fn::GetAtt": ["LambdaVPCExecutionRole", "Arn"]},
+          "Code": {
+             "S3Bucket": {"Ref": "PS3Bucket"},
+             "S3Key": "serverless-query.zip"
+          },
+          "Runtime": "python3.9",
+          "VpcConfig": {
+             "SubnetIds":[{"Ref": "PSubnetIds"}],
+             "SecurityGroupIds":[{"Ref": "PSecurityGroupIds"}]
+          },
+          "Environment":{
+             "Variables":{
+                "ENDPOINT": {"Ref": "PEndpoint"},
+                "PORT": {"Ref": "PPort"},
+                "DATABASE": {"Ref": "PDatabase"},
+                "DBUSER": {"Ref": "PDbUser"},
+                "DBPASSWORD": {"Ref": "PDbPassword"},
+                "OPERATION": {"Ref":  "POperation"}
+             }
+          }
+       }
+    },
+
+    "LambdaInvokeGetArtistsPermission": {
+        "Description": "Grant ServerlessQueryApi Permission to Invoke ServerlessQuery Lambda function",
+        "Type": "AWS::Lambda::Permission",
+        "Properties": {
+           "FunctionName": {"Fn::GetAtt":["GetTopArtistLambdaFunction", "Arn"]},
+           "Action": "lambda:invokeFunction",
+           "Principal": "apigateway.amazonaws.com",
+           "SourceArn": {"Fn::Join": ["",
+                ["arn:aws:execute-api:", {"Ref": "AWS::Region"}, ":", {"Ref": "AWS::AccountId"}, ":", {"Ref": "ServerlessQueryApi"}, "/*"]
+           ]}
+        }
+     },
+
+     "GetTopArtistApiResource": {
+        "Description": "Create ServerlessGetTopArtist Resource",
+        "Type" : "AWS::ApiGateway::Resource",
+        "Properties" : {
+                "RestApiId" : {"Ref": "ServerlessQueryApi"},
+                "ParentId" : {"Fn::GetAtt": ["ServerlessQueryApi", "RootResourceId"]},
+                "PathPart" : "get_top_artist"
+        }
+     },
+
+     "GetTopArtistApiMethod": {
+         "Description": "Create GetTopArtistApiResource Method",
+         "DependsOn": "LambdaInvokePermission",
+         "Type": "AWS::ApiGateway::Method",
+         "Properties": {
+            "AuthorizationType": "NONE",
+            "HttpMethod": "GET",
+            "Integration": {
+               "Type": "AWS_PROXY",
+               "IntegrationHttpMethod": "POST",
+               "Uri": {"Fn::Join" : ["",
+                  ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/",{"Fn::GetAtt":["ServerlessQueryLambdaFunction", "Arn"]}, "/invocations"]
+                ]},
+               "IntegrationResponses": [{
+                "StatusCode": 200
+               }]
+            },
+            "ResourceId": {"Ref": "GetTopArtistApiResource"},
             "RestApiId": {"Ref": "ServerlessQueryApi"},
             "MethodResponses": [{ "StatusCode": 200 }]
          }

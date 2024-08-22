@@ -27,12 +27,35 @@ port=environ.get('PORT')
 dbuser=environ.get('DBUSER')
 password=environ.get('DBPASSWORD')
 database=environ.get('DATABASE')
+operation=environ.get("OPERATION")
 
-query= "SELECT t.tag_name, COUNT(DISTINCT at.artist_id) AS artist_count \
-        FROM artist_tags at \
-        JOIN tags t ON at.tag_id = t.tag_id \
-        GROUP BY t.tag_name \
-        ORDER BY artist_count DESC"
+queries = {
+    "GET_TOP_TAGS": """
+                    SELECT t.tag_name, COUNT(DISTINCT at.artist_id) AS artist_count \
+                    FROM artist_tags at \
+                    JOIN tags t ON at.tag_id = t.tag_id \
+                    GROUP BY t.tag_name \
+                    ORDER BY artist_count DESC
+                    """,
+    
+    "GET_LATEST_TOP_ARTISTS":   """
+                                SELECT r.artist_id, a.artist_name, r.rank, r.listeners_count, r.ranking_date 
+                                FROM rankings r 
+                                JOIN artists a ON r.artist_id = a.artist_id 
+                                WHERE r.ranking_date = (SELECT MAX(ranking_date) FROM rankings) 
+                                ORDER BY r.rank ASC 
+                                LIMIT 100
+                                 """,
+
+    "GET_ARTIST_FROM_TAG":  """
+                            SELECT a.artist_id, a.artist_name, a.spotify_url
+                            FROM artists a
+                            JOIN artist_tags at ON a.artist_id = at.artist_id
+                            JOIN tags t ON at.tag_id = t.tag_id
+                            WHERE t.tag_name = %s; 
+                            """
+
+}
 
 logger=logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -51,7 +74,7 @@ def log_err(errmsg):
     return {"body": errmsg , "headers": {}, "statusCode": 400,
         "isBase64Encoded":"false"}
 
-logger.info("Cold start complete.") 
+logger.info("Cold start complete.")
 
 def handler(event,context):
 
@@ -60,7 +83,7 @@ def handler(event,context):
         cursor=cnx.cursor()
 
         try:
-            cursor.execute(query)
+            cursor.execute(queries["OPERATION"])
         except:
             return log_err ("ERROR: Cannot execute cursor.\n{}".format(
                 traceback.format_exc()) )
