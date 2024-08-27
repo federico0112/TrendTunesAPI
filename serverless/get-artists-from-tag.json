@@ -76,18 +76,18 @@
       }
     },
 
-   "ServerlessQueryLambdaFunction": {
+   "GetArtistsFromTagQueryLambdaFunction": {
        "Description": "Create Lambda function using code from S3 bucket",
        "Type": "AWS::Lambda::Function",
        "Properties": {
-          "FunctionName": "ServerlessQuery",
-          "Handler": "serverless-query.handler",
+          "FunctionName": "GetArtistsFromTagQuery",
+          "Handler": "get-top-artists.handler",
           "Role": {"Fn::GetAtt": ["LambdaVPCExecutionRole", "Arn"]},
           "Code": {
              "S3Bucket": {"Ref": "PS3Bucket"},
              "S3Key": "serverless-query.zip"
           },
-          "Runtime": "python3.9",
+          "Runtime": "python3.11",
           "VpcConfig": {
              "SubnetIds":[{"Ref": "PSubnetIds"}],
              "SecurityGroupIds":[{"Ref": "PSecurityGroupIds"}]
@@ -130,39 +130,39 @@
        }
     },
 
-     "ServerlessQueryApi": {
+     "GetArtistsFromTagQueryApi": {
         "Description": "Create API Gateway REST API",
         "Type" : "AWS::ApiGateway::RestApi",
         "Properties" : {
-           "Name" : "ServerlessQueryApi"
+           "Name" : "GetArtistsFromTagQueryApi"
         }
      },
 
-     "ServerlessQueryApiResource": {
-        "Description": "Create ServerlessQueryApi Resource",
+     "GetArtistsFromTagQueryApiResource": {
+        "Description": "Create GetArtistsFromTagQueryApi Resource",
         "Type" : "AWS::ApiGateway::Resource",
         "Properties" : {
-                "RestApiId" : {"Ref": "ServerlessQueryApi"},
-                "ParentId" : {"Fn::GetAtt": ["ServerlessQueryApi", "RootResourceId"]},
+                "RestApiId" : {"Ref": "GetArtistsFromTagQueryApi"},
+                "ParentId" : {"Fn::GetAtt": ["GetArtistsFromTagQueryApi", "RootResourceId"]},
                 "PathPart" : "query1"
         }
      },
 
      "LambdaInvokePermission": {
-        "Description": "Grant ServerlessQueryApi Permission to Invoke ServerlessQuery Lambda function",
+        "Description": "Grant GetArtistsFromTagQueryApi Permission to Invoke GetArtistsFromTag Lambda function",
         "Type": "AWS::Lambda::Permission",
         "Properties": {
-           "FunctionName": {"Fn::GetAtt":["ServerlessQueryLambdaFunction", "Arn"]},
+           "FunctionName": {"Fn::GetAtt":["GetArtistsFromTagQueryLambdaFunction", "Arn"]},
            "Action": "lambda:invokeFunction",
            "Principal": "apigateway.amazonaws.com",
            "SourceArn": {"Fn::Join": ["",
-                ["arn:aws:execute-api:", {"Ref": "AWS::Region"}, ":", {"Ref": "AWS::AccountId"}, ":", {"Ref": "ServerlessQueryApi"}, "/*"]
+                ["arn:aws:execute-api:", {"Ref": "AWS::Region"}, ":", {"Ref": "AWS::AccountId"}, ":", {"Ref": "GetArtistsFromTagQueryApi"}, "/*"]
            ]}
         }
      },
 
-     "ServerlessQueryApiMethod": {
-         "Description": "Create ServerlessQueryApiResource Method",
+     "GetArtistsFromTagQueryApiMethod": {
+         "Description": "Create GetArtistsFromTagQueryApiResource Method",
          "DependsOn": "LambdaInvokePermission",
          "Type": "AWS::ApiGateway::Method",
          "Properties": {
@@ -172,25 +172,25 @@
                "Type": "AWS_PROXY",
                "IntegrationHttpMethod": "POST",
                "Uri": {"Fn::Join" : ["",
-                  ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/",{"Fn::GetAtt":["ServerlessQueryLambdaFunction", "Arn"]}, "/invocations"]
+                  ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/",{"Fn::GetAtt":["GetArtistsFromTagQueryLambdaFunction", "Arn"]}, "/invocations"]
                 ]},
                "IntegrationResponses": [{
                 "StatusCode": 200
                }]
             },
-            "ResourceId": {"Ref": "ServerlessQueryApiResource"},
-            "RestApiId": {"Ref": "ServerlessQueryApi"},
+            "ResourceId": {"Ref": "GetArtistsFromTagQueryApiResource"},
+            "RestApiId": {"Ref": "GetArtistsFromTagQueryApi"},
             "MethodResponses": [{ "StatusCode": 200 }]
          }
      },
 
-     "ServerlessQueryApiDeploy": {
-        "Description": "Deploy ServerlessQueryApi",
+     "GetArtistsFromTagQueryApiDeploy": {
+        "Description": "Deploy GetArtistsFromTagQueryApi",
         "Type": "AWS::ApiGateway::Deployment",
-        "DependsOn": "ServerlessQueryApiMethod",
+        "DependsOn": "GetArtistsFromTagQueryApiMethod",
         "Properties": {
-           "RestApiId": {"Ref": "ServerlessQueryApi"},
-           "StageName": "beta"
+           "RestApiId": {"Ref": "GetArtistsFromTagQueryApi"},
+           "StageName": "test"
         }
      }
    }
