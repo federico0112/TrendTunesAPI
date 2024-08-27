@@ -5,7 +5,6 @@ import trendTunesAPI
 import psycopg2
 from psycopg2 import sql, errors
 
-#top_artists = trendTunesAPI.run_api()
 
 class DBInteraction:
     def __init__(self):
@@ -14,10 +13,10 @@ class DBInteraction:
 
     def connect(self):
         self._conn = psycopg2.connect(database="postgres",
-                         user="postgres",
-                         password="Fred*0112!",
-                         host="database-1.clq2m6y84fp1.us-east-1.rds.amazonaws.com",
-                         port="5432")
+                                      user="postgres",
+                                      password="Fred*0112!",
+                                      host="trendtunes-dev.clq2m6y84fp1.us-east-1.rds.amazonaws.com",
+                                      port="5432")
 
         self._cur = self._conn.cursor()
 
@@ -144,7 +143,8 @@ class DBInteraction:
                 # Link artist to tag
                 self.link_artist_and_tag(artist_id=artist_id, tag_id=tag_id)
 
-            self.insert_rank(artist_id=artist_id, rank=rank+1, listeners_count=artist.listeners, plays_count=artist.playcount)
+            self.insert_rank(artist_id=artist_id, rank=rank + 1, listeners_count=artist.listeners,
+                             plays_count=artist.playcount)
 
 
 if __name__ == '__main__':

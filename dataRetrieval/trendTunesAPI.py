@@ -1,3 +1,5 @@
+import json
+
 import requests
 
 
@@ -5,6 +7,12 @@ class ArtistTag:
     def __init__(self, name: str, url: str):
         self.name = name
         self.url = url
+
+    def get_json_format(self):
+        return {
+            "name": self.name,
+            "url": self.url
+        }
 
 
 class ArtistData:
@@ -20,6 +28,16 @@ class ArtistData:
         for tag in tags:
             tag_class = ArtistTag(name=tag['name'].lower(), url=tag['url'])
             self.tags.append(tag_class)
+
+    def get_json_format(self):
+        return {
+            "name": self.name,
+            "playcount": self.name,
+            "listeners": self.listeners,
+            "url": self.url,
+            "mbid": self.mbid,
+            "tags": [tag.get_json_format() for tag in self.tags]
+        }
 
     def __str__(self):
         return self.name
@@ -58,6 +76,7 @@ class DataRetrieval:
 
     def get_tags_for_all_artists(self):
         for artist in self.top_artists:
+            print(f"getting tag for artist: {artist}")
             params = {"autocorrect": 1}
             if artist.mbid:
                 params["mbid"] = artist.mbid
@@ -76,7 +95,6 @@ class DataRetrieval:
 
     def search_artist(self, name: str):
         response = self._send_request("artist.getinfo", {"artist": name})
-        print(response)
 
     def _send_request(self, method: str, optional_params: dict = None):
         param = {
@@ -91,7 +109,6 @@ class DataRetrieval:
         if response.status_code == 200:
             # Parse the JSON response
             data = response.json()
-            print("Response:", data)
             return data
         else:
             print(f"Error: {response.status_code}")
@@ -99,7 +116,9 @@ class DataRetrieval:
 
 def run_api() -> list[ArtistData]:
     data = DataRetrieval()
+    print("Getting top artists!")
     data.get_top_artists()
+    print("Getting tags for artists!")
     data.get_tags_for_all_artists()
     print("done")
     return data.top_artists
